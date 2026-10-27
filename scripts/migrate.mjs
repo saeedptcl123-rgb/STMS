@@ -14,6 +14,12 @@ const available = candidates
   .map((name) => ({ name, value: process.env[name]?.trim() }))
   .filter((candidate) => candidate.value);
 
+console.log(
+  `Database environment variables present: ${
+    available.map((candidate) => candidate.name).join(", ") || "none"
+  }.`
+);
+
 const selected = available.find(
   (candidate) => !candidate.value.startsWith("prisma+postgres://")
 );
@@ -32,6 +38,12 @@ if (!selected) {
   );
 } else {
   console.log(`Applying migrations with ${selected.name}.`);
+  if (/-pooler\.|pooled\./i.test(selected.value)) {
+    console.warn(
+      `Warning: ${selected.name} looks like a pooled connection. ` +
+        "Prisma Migrate is more reliable over a direct connection; set DIRECT_URL to the unpooled string if this fails."
+    );
+  }
 }
 
 const env = selected
