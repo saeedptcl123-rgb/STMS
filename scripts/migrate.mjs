@@ -20,15 +20,34 @@ console.log(
   }.`
 );
 
-const selected = available.find(
-  (candidate) => !candidate.value.startsWith("prisma+postgres://")
+const isPostgresUrl = (value) => /^postgres(ql)?:\/\//i.test(value);
+const isAccelerateUrl = (value) => /^prisma\+postgres:\/\//i.test(value);
+
+const selected = available.find((candidate) =>
+  isPostgresUrl(candidate.value)
+);
+const accelerate = available.find((candidate) =>
+  isAccelerateUrl(candidate.value)
+);
+const invalid = available.filter(
+  (candidate) =>
+    !isPostgresUrl(candidate.value) && !isAccelerateUrl(candidate.value)
 );
 
 if (!selected) {
-  if (available.length > 0) {
+  if (accelerate) {
     console.error(
-      `Cannot run migrations with ${available[0].name}: it is a prisma+postgres:// (Accelerate) URL. ` +
+      `Cannot run migrations with ${accelerate.name}: it is a prisma+postgres:// (Accelerate) URL. ` +
         "Use the direct postgres:// connection string from your database dashboard as DATABASE_URL or DIRECT_URL."
+    );
+    process.exit(1);
+  }
+
+  if (invalid.length > 0) {
+    const scheme = `${invalid[0].value.split(":")[0]}:`;
+    console.error(
+      `${invalid.map((candidate) => candidate.name).join(", ")} is not a PostgreSQL connection string ` +
+        `(found "${scheme}"). Set DATABASE_URL to the postgresql:// string from your database dashboard.`
     );
     process.exit(1);
   }
@@ -38,6 +57,13 @@ if (!selected) {
   );
 } else {
   console.log(`Applying migrations with ${selected.name}.`);
+
+  if (invalid.length > 0) {
+    console.warn(
+      `Ignoring ${invalid.map((candidate) => candidate.name).join(", ")}: not a PostgreSQL URL.`
+    );
+  }
+
   if (/-pooler\.|pooled\./i.test(selected.value)) {
     console.warn(
       `Warning: ${selected.name} looks like a pooled connection. ` +
