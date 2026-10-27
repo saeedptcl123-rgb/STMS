@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { FileText, Receipt, ArrowLeft } from "lucide-react"
 
+export const dynamic = "force-dynamic"
+export const revalidate = 0
+
 async function getFeeStats() {
   const [totalCollected, totalStudents, feeStructures] = await Promise.all([
     prisma.payment.aggregate({
