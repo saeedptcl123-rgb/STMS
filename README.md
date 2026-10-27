@@ -42,11 +42,31 @@ schema.
 
 ## Deploy on Vercel
 
-1. Create a PostgreSQL database (for example the Neon integration in the
-   Vercel Marketplace) and copy its **pooled** connection string.
-2. Add it to the project as the `DATABASE_URL` environment variable.
-3. Deploy. The `vercel-build` script generates the Prisma client, applies
+1. Create a PostgreSQL database (Neon or Prisma Postgres from the Vercel
+   Marketplace, or any external Postgres) and connect it to the project.
+2. Make sure `DATABASE_URL` exists in the Vercel project for Production,
+   Preview, and Development. The app also falls back to the variables these
+   integrations create:
+   - Neon: `DATABASE_URL`, `DATABASE_URL_UNPOOLED`
+   - Vercel Postgres: `POSTGRES_PRISMA_URL`, `POSTGRES_URL`
+   - Prisma Postgres: `DATABASE_URL`, `PRISMA_DATABASE_URL`
+3. Deploy. The `vercel-build` script generates Prisma Client, applies
    migrations with `prisma migrate deploy`, and builds the app.
+
+Migrations use the direct (non-pooled) connection whenever one is available
+(`DIRECT_URL`, `DATABASE_URL_UNPOOLED`, or `POSTGRES_URL_NON_POOLING`), because
+pooled connections can break Prisma Migrate.
+
+### Migration troubleshooting
+
+- `P3005` (schema is not empty) or `P3018` (relation already exists): the
+  database has tables that Prisma did not create. For a new database, recreate
+  it or reset it with `npx prisma migrate reset --force` (destructive), then
+  redeploy.
+- `P1001` or `P1017`: the build cannot reach the database. Set `DIRECT_URL` to
+  the direct/unpooled connection string.
+- `P1010` or "User denied access": `DATABASE_URL` is an Accelerate
+  `prisma+postgres://` URL. Use the direct `postgres://` string instead.
 
 ## Scripts
 
@@ -55,5 +75,6 @@ schema.
 | `npm run dev` | Start the development server |
 | `npm run build` | Production build |
 | `npm run start` | Start the production server |
+| `npm run migrate:deploy` | Apply migrations using the direct connection |
 | `npm run lint` | Run ESLint |
 | `npx prisma studio` | Browse the database |
