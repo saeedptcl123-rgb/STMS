@@ -19,6 +19,7 @@ async function getFeeStats() {
     totalCollected: totalCollected._sum.amountPaid || 0,
     totalStudents,
     feeStructureCount: feeStructures.length,
+    feeStructures,
   }
 }
 
@@ -109,9 +110,25 @@ export default async function FeesPage() {
             <CardTitle>Fee Structures</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-gray-500 text-center py-4">
-              Fee structures will be displayed here
-            </p>
+            {stats.feeStructures.length === 0 ? (
+              <p className="text-gray-500 text-center py-4">
+                No fee structures defined yet
+              </p>
+            ) : (
+              <ul className="divide-y">
+                {stats.feeStructures.map((fee) => (
+                  <li key={fee.id} className="flex items-center justify-between py-3">
+                    <div>
+                      <p className="font-medium text-gray-900">{fee.feeType}</p>
+                      <p className="text-sm text-gray-500">Class {fee.className}</p>
+                    </div>
+                    <span className="font-semibold text-gray-900">
+                      Rs. {fee.amount.toLocaleString()}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </CardContent>
         </Card>
       </div>
