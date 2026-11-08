@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db"
 import { DashboardCharts } from "@/components/dashboard/DashboardCharts"
+import { getFeeSummary } from "@/actions/fees"
 
 export const dynamic = "force-dynamic"
 export const revalidate = 0
@@ -18,7 +19,6 @@ async function getDashboardStats() {
     totalStudents,
     todayAttendance,
     recentAdmissions,
-    totalPayments,
     monthlyPayments,
     activeExams,
     examResults,
@@ -32,7 +32,6 @@ async function getDashboardStats() {
       orderBy: { createdAt: "desc" },
       take: 5,
     }),
-    prisma.payment.aggregate({ _sum: { amountPaid: true } }),
     prisma.payment.groupBy({
       by: ["paymentDate"],
       where: { paymentDate: { gte: startOfMonth } },
@@ -70,7 +69,8 @@ async function getDashboardStats() {
     return { class: `Class ${cls.className}`, average: Math.round(avgPercentage * 10) / 10, count: cls._count.id }
   })
 
-  const totalPending = 50000 - (totalPayments._sum.amountPaid || 0)
+  // Real figures from the shared fee summary (voided payments excluded, fee structures used).
+  const feeSummary = await getFeeSummary()
 
   return {
     totalStudents,
@@ -78,8 +78,8 @@ async function getDashboardStats() {
     presentCount,
     absentCount,
     recentAdmissions,
-    totalCollected: totalPayments._sum.amountPaid || 0,
-    totalPending: totalPending > 0 ? totalPending : 0,
+    totalCollected: feeSummary.totalCollected,
+    totalPending: feeSummary.totalPending,
     activeExams,
     feeCollectionData,
     examByClass,

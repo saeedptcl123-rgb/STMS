@@ -54,3 +54,4 @@ prisma/dev.db-journal
 
 # allow the env template
 !.env.example
+.env

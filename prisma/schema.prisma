@@ -46,15 +46,22 @@ model Attendance {
   @@unique([studentId, date])
 }
 
+model FeeType {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+}
+
 model FeeStructure {
-  id           String    @id @default(cuid())
+  id           String        @id @default(cuid())
   className    String
   feeType      String
   amount       Float
   dueDate      DateTime
   academicYear String
-  createdAt    DateTime  @default(now())
+  createdAt    DateTime      @default(now())
   payments     Payment[]
+  items        PaymentItem[]
 }
 
 model Payment {
@@ -70,6 +77,34 @@ model Payment {
   createdAt      DateTime      @default(now())
   feeStructure   FeeStructure? @relation(fields: [feeStructureId], references: [id])
   student        Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  items          PaymentItem[]
+}
+
+model PaymentItem {
+  id             String        @id @default(cuid())
+  paymentId      String
+  feeStructureId String?
+  description    String
+  amount         Float
+  dueDate        DateTime?
+  payment        Payment       @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  feeStructure   FeeStructure? @relation(fields: [feeStructureId], references: [id], onDelete: SetNull)
+}
+
+model SchoolSettings {
+  id            String   @id @default("default")
+  schoolName    String
+  shortName     String
+  address       String
+  phone         String
+  email         String
+  bankName      String
+  bankBranch    String
+  accountTitle  String
+  accountNumber String
+  academicYear  String
+  logoData      String?
+  updatedAt     DateTime @updatedAt
 }
 
 model Exam {

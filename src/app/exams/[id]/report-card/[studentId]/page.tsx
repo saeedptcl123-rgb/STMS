@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { useParams } from "next/navigation"
 import { getResult } from "@/actions/exams"
+import { getSchoolSettings } from "@/actions/settings"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import {
@@ -57,12 +58,24 @@ const gradeColors: Record<string, string> = {
   F: "bg-red-100 text-red-800",
 }
 
-const SCHOOL_NAME = "Academy of Excellence"
-const SCHOOL_ADDRESS = "123 Education Street, Knowledge City, KC 12345"
-const SCHOOL_PHONE = "+1 (555) 123-4567"
-const SCHOOL_EMAIL = "info@academyofexcellence.edu"
 
 export default function ReportCardPage() {
+  const [school, setSchool] = useState({ schoolName: "", address: "", phone: "", email: "", logoData: null as string | null })
+
+  useEffect(() => {
+    getSchoolSettings().then((res) => {
+      if (res.success && res.settings) {
+        setSchool({
+          schoolName: res.settings.schoolName,
+          address: res.settings.address,
+          phone: res.settings.phone,
+          email: res.settings.email,
+          logoData: res.settings.logoData,
+        })
+      }
+    })
+  }, [])
+
   const params = useParams()
   const examId = params.id as string
   const studentId = params.studentId as string
@@ -159,10 +172,18 @@ export default function ReportCardPage() {
         <div className="border-2 border-gray-300 rounded-lg p-6 print:border-0 print:p-0 print:shadow-none">
           {/* School Header */}
           <div className="text-center border-b-2 border-gray-300 pb-6 mb-6">
-            <div className="text-3xl font-bold text-gray-900 mb-1">{SCHOOL_NAME}</div>
-            <div className="text-gray-600 text-sm mb-1">{SCHOOL_ADDRESS}</div>
-            <div className="text-gray-600 text-sm mb-1">
-              Phone: {SCHOOL_PHONE} | Email: {SCHOOL_EMAIL}
+            <div className="flex items-center gap-6">
+              {school.logoData && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={school.logoData} alt="" className="h-24 w-24 shrink-0 object-contain" />
+              )}
+              <div className="flex-1 text-center">
+                <div className="text-3xl font-bold text-gray-900 mb-1">{school.schoolName}</div>
+                <div className="text-gray-600 text-sm mb-1">{school.address}</div>
+                <div className="text-gray-600 text-sm mb-1">
+                  Phone: {school.phone} | Email: {school.email}
+                </div>
+              </div>
             </div>
             <div className="mt-4 text-xl font-semibold text-gray-800 border-t border-gray-300 pt-4">
               STUDENT REPORT CARD

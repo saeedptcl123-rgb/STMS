@@ -16,37 +16,41 @@ interface Student {
   parentContact: string
 }
 
-interface FeeStructure {
-  id: string
-  feeType: string
+export interface ChalanHead {
+  description: string
+  dueDate: string | null
   amount: number
-  className: string
-  academicYear: string
-  dueDate: string | Date
+  paidNow: number
+  outstanding: number
 }
 
 interface Payment {
-  id: string
   receiptNumber: string
   amountPaid: number
   paymentDate: Date | string
   student: Student
-  feeStructure: FeeStructure | null
+}
+
+export interface ChalanSchoolSettings {
+  schoolName: string
+  shortName: string
+  address: string
+  phone: string
+  email: string
+  bankName: string
+  bankBranch: string
+  accountTitle: string
+  accountNumber: string
+  academicYear: string
+  logoData: string | null
 }
 
 interface FeeChalanViewProps {
   payment: Payment
+  settings: ChalanSchoolSettings
+  heads: ChalanHead[]
+  balance: number
 }
-
-const SCHOOL_NAME = "Excellence Public School"
-const SCHOOL_SHORT = "EPS"
-const SCHOOL_ADDRESS = "Main Campus, Education Road, Lahore"
-const SCHOOL_PHONE = "+92-42-111-222-333"
-const SCHOOL_EMAIL = "info@excellence.edu.pk"
-const BANK_NAME = "National Bank of Pakistan"
-const BANK_BRANCH = "Main Branch, Lahore"
-const ACCOUNT_TITLE = "Excellence Public School Fee Collection"
-const ACCOUNT_NUMBER = "1234-567890-12"
 
 const COPIES = [
   { label: "BANK COPY", className: "bank-copy", accent: "#1d4ed8", note: "Bank Copy - Attach with deposit slip" },
@@ -119,17 +123,17 @@ function getAmountInWords(amount: number): string {
   return words + " Only"
 }
 
-function buildFeeHeads(payment: Payment) {
-  const { feeStructure, amountPaid } = payment
-  const heads: Array<{ description: string; amount: number }> = []
+function formatMoney(amount: number): string {
+  return amount.toLocaleString("en-PK", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
 
-  if (feeStructure) {
-    heads.push({ description: feeStructure.feeType, amount: feeStructure.amount })
-  } else {
-    heads.push({ description: "Monthly Tuition Fee", amount: amountPaid })
-  }
-
-  return heads
+function earliestOutstandingDue(heads: ChalanHead[]): string {
+  const times = heads
+    .filter((h) => h.outstanding > 0 && h.dueDate)
+    .map((h) => new Date(h.dueDate as string).getTime())
+    .filter((t) => !isNaN(t))
+  if (times.length === 0) return "-"
+  return formatDate(new Date(Math.min(...times)))
 }
 
 function ChalanCopy({
@@ -138,18 +142,23 @@ function ChalanCopy({
   accent,
   copyClass,
   payment,
+  settings,
+  heads,
+  balance,
 }: {
   label: string
   note: string
   accent: string
   copyClass: string
   payment: Payment
+  settings: ChalanSchoolSettings
+  heads: ChalanHead[]
+  balance: number
 }) {
-  const { receiptNumber, paymentDate, student, feeStructure } = payment
+  const { receiptNumber, paymentDate, student } = payment
   const formattedDate = formatDate(paymentDate)
-  const dueDate = feeStructure ? formatDate(feeStructure.dueDate) : "-"
-  const feeHeads = buildFeeHeads(payment)
-  const totalAmount = feeHeads.reduce((sum, h) => sum + h.amount, 0)
+  const dueDate = earliestOutstandingDue(heads)
+  const totalAmount = payment.amountPaid
 
   return (
     <div className={`copy ${copyClass}`} style={{ "--accent": accent } as CSSProperties}>
@@ -160,12 +169,19 @@ function ChalanCopy({
 
       <div className="copy-head">
         <div className="brand">
-          <div className="logo">{SCHOOL_SHORT}</div>
+          <div className="logo">
+            {settings.logoData ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={settings.logoData} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+            ) : (
+              settings.shortName
+            )}
+          </div>
           <div className="brand-text">
-            <h2 className="school-name">{SCHOOL_NAME}</h2>
-            <p className="school-line">{SCHOOL_ADDRESS}</p>
+            <h2 className="school-name">{settings.schoolName}</h2>
+            <p className="school-line">{settings.address}</p>
             <p className="school-line">
-              {SCHOOL_PHONE} &nbsp;|&nbsp; {SCHOOL_EMAIL}
+              {[settings.phone, settings.email].filter(Boolean).join(" \u00a0|\u00a0 ")}
             </p>
           </div>
         </div>
@@ -173,10 +189,10 @@ function ChalanCopy({
 
       <div className="bank-box">
         <h4>Bank Details</h4>
-        <p className="bank-name">{BANK_NAME}</p>
-        <p>{BANK_BRANCH}</p>
-        <p>A/C Title: {ACCOUNT_TITLE}</p>
-        <p>A/C No: <strong>{ACCOUNT_NUMBER}</strong></p>
+        <p className="bank-name">{settings.bankName || "-"}</p>
+        <p>{settings.bankBranch}</p>
+        <p>A/C Title: {settings.accountTitle || settings.schoolName}</p>
+        <p>A/C No: <strong>{settings.accountNumber || "-"}</strong></p>
       </div>
 
       <div className="title-bar">FEE DEPOSIT CHALAN / VOUCHER</div>
@@ -200,8 +216,8 @@ function ChalanCopy({
             <td className="value">Class {student.className} - {student.section}</td>
           </tr>
           <tr>
-            <td className="label">Fee Month:</td>
-            <td className="value">{feeStructure?.academicYear ?? "Current Month"}</td>
+            <td className="label">Academic Year:</td>
+            <td className="value">{settings.academicYear}</td>
             <td className="label">Issue Date:</td>
             <td className="value">{formattedDate}</td>
           </tr>
@@ -220,23 +236,32 @@ function ChalanCopy({
             <th className="col-no">S.No</th>
             <th>Heads of Account</th>
             <th className="col-amt">Amount (Rs.)</th>
+            <th className="col-amt">Paid (Rs.)</th>
           </tr>
         </thead>
         <tbody>
-          {feeHeads.map((head, index) => (
+          {heads.map((head, index) => (
             <tr key={index}>
               <td className="text-center">{index + 1}</td>
-              <td>{head.description}</td>
-              <td className="text-right">
-                {head.amount.toLocaleString("en-PK", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              <td>
+                {head.description}
+                <div className="head-due">
+                  Due: {head.dueDate ? formatDate(head.dueDate) : "-"}
+                </div>
               </td>
+              <td className="text-right">{formatMoney(head.amount)}</td>
+              <td className="text-right">{head.paidNow > 0 ? formatMoney(head.paidNow) : "-"}</td>
             </tr>
           ))}
         </tbody>
         <tfoot>
           <tr className="total-row">
-            <td colSpan={2} className="total-label">Total Amount Payable</td>
+            <td colSpan={3} className="total-label">Amount Payable Now</td>
             <td className="total-amount text-right">{formatCurrency(totalAmount)}</td>
+          </tr>
+          <tr>
+            <td colSpan={3} className="total-label">Remaining Balance</td>
+            <td className="text-right">{formatCurrency(balance)}</td>
           </tr>
         </tfoot>
       </table>
@@ -333,6 +358,7 @@ function ChalanCopy({
           color: #0f172a;
           line-height: 1.15;
         }
+        .head-due { font-size: 7.5px; color: #64748b; margin-top: 1px; }
         .school-line { margin: 0; font-size: 7.5px; color: #64748b; line-height: 1.35; }
         .bank-box {
           margin-top: 8px;
@@ -496,7 +522,7 @@ function ChalanCopy({
   )
 }
 
-export function FeeChalanView({ payment }: FeeChalanViewProps) {
+export function FeeChalanView({ payment, settings, heads, balance }: FeeChalanViewProps) {
   const handlePrint = () => {
     window.print()
   }
@@ -526,6 +552,9 @@ export function FeeChalanView({ payment }: FeeChalanViewProps) {
             accent={copy.accent}
             copyClass={copy.className}
             payment={payment}
+            settings={settings}
+            heads={heads}
+            balance={balance}
           />
         ))}
       </div>

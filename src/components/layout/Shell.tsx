@@ -1,15 +1,24 @@
 "use client"
 
 import { useState } from "react"
+import { usePathname } from "next/navigation"
 import { Sidebar } from "./Sidebar"
 import { Header } from "./Header"
 
 interface ShellProps {
   children: React.ReactNode
+  schoolName: string
+  shortName: string
+  logoData: string | null
 }
 
-export function Shell({ children }: ShellProps) {
+export function Shell({ children, schoolName, shortName, logoData }: ShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const pathname = usePathname()
+
+  if (pathname === "/login") {
+    return <>{children}</>
+  }
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -29,7 +38,7 @@ export function Shell({ children }: ShellProps) {
           ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
         `}
       >
-        <Sidebar />
+        <Sidebar schoolName={schoolName} shortName={shortName} logoData={logoData} />
       </div>
 
       {/* Main content */}

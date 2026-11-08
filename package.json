@@ -9,7 +9,8 @@
     "migrate:deploy": "node scripts/migrate.mjs",
     "start": "next start",
     "lint": "eslint",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "check": "node scripts/check-setup.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
@@ -30,6 +31,7 @@
     "zod": "^4.5.4"
   },
   "devDependencies": {
+    "@neon/config": "^1.13.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

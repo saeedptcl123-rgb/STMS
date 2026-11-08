@@ -3,6 +3,7 @@
 import React, { Suspense, useState, useEffect } from "react"
 import { useSearchParams } from "next/navigation"
 import { getExams, getClassResults, getResult } from "@/actions/exams"
+import { getSchoolSettings } from "@/actions/settings"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import {
@@ -119,6 +120,13 @@ function ResultsPageContent() {
     setExpandedRows(newExpanded)
   }
 
+  const [schoolName, setSchoolName] = useState("")
+  useEffect(() => {
+    getSchoolSettings().then((res) => {
+      if (res.success && res.settings) setSchoolName(res.settings.schoolName)
+    })
+  }, [])
+
   const formatPhoneNumber = (phone: string): string => {
     let cleaned = phone.replace(/\D/g, '')
 
@@ -155,7 +163,7 @@ Your ward *${student.firstName} ${student.lastName}* (Roll: ${student.rollNumber
 
 Please check the full report card for subject-wise details.
 
-- Academy of Excellence`
+- ${schoolName}`
 
     const encodedMessage = encodeURIComponent(message)
     const formattedPhone = formatPhoneNumber(student.parentContact)

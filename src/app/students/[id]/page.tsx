@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 import { StudentDeleteDialog } from "@/components/students/StudentDeleteDialog"
+import { StudentFeeLedger } from "@/components/students/StudentFeeLedger"
 
 interface StudentDetailPageProps {
   params: Promise<{ id: string }>
@@ -134,6 +135,8 @@ export default async function StudentDetailPage({ params }: StudentDetailPagePro
           </CardContent>
         </Card>
       </div>
+
+      <StudentFeeLedger studentId={student.id} />
 
       {student.isActive && (
         <StudentDeleteDialog studentId={student.id} studentName={`${student.firstName} ${student.lastName}`} />
